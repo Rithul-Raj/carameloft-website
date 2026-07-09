@@ -1,0 +1,222 @@
+[
+  {
+    "id": "p1",
+    "name": "Blueberry Cake",
+    "price": 1100,
+    "originalPrice": 1200,
+    "rating": 5,
+    "category": "premium",
+    "description": "Fresh blueberries with light cream layers.",
+    "image": "/assets/cakes/blueberry.jpg",
+    "highlights": ["🫐 Real Blueberry Compote", "🍰 Soft Vanilla Sponge", "✨ Light & Airy Cream"]
+  },
+  {
+    "id": "p2",
+    "name": "Spanish Delight",
+    "price": 1000,
+    "originalPrice": 1100,
+    "rating": 5,
+    "category": "premium",
+    "description": "A rich fusion of nuts, milk, and caramel.",
+    "image": "/assets/cakes/spanish-delight.jpg",
+    "highlights": ["🥜 Roasted Nuts & Praline", "🍯 Salted Caramel Drizzle", "🥛 Rich Milk Cream"]
+  },
+  {
+    "id": "p3",
+    "name": "Vancho Cake",
+    "price": 1000,
+    "originalPrice": 1100,
+    "rating": 4,
+    "category": "premium",
+    "description": "Perfect blend of vanilla and chocolate.",
+    "image": "/assets/cakes/vancho.jpg",
+    "highlights": ["🍫 Dark Chocolate Ganache", "🧁 Vanilla & Chocolate Layers", "✨ Dual Flavor Experience"]
+  },
+  {
+    "id": "p4",
+    "name": "Caramel Toffy Cake",
+    "price": 1100,
+    "originalPrice": 1200,
+    "rating": 5,
+    "category": "premium",
+    "description": "Gooey caramel glaze over moist sponge.",
+    "image": "/assets/cakes/caramel-toffy.jpg",
+    "highlights": ["🍬 Gooey Toffee Sauce", "🍰 Moist Butter Sponge", "✨ Sweet Caramel Glaze"]
+  },
+  {
+    "id": "p5",
+    "name": "White Truffle Cake",
+    "price": 1100,
+    "originalPrice": 1200,
+    "rating": 5,
+    "category": "premium",
+    "description": "Elegant white chocolate luxury.",
+    "image": "/assets/cakes/white-truffle.jpg",
+    "highlights": ["🤍 Premium White Chocolate", "🎂 Silky Truffle Cream", "✨ Elegant White Shavings"]
+  },
+  {
+    "id": "p6",
+    "name": "Rasmalai Cake",
+    "price": 1100,
+    "originalPrice": 1200,
+    "rating": 5,
+    "category": "premium",
+    "description": "Traditional fusion with cardamom and nuts.",
+    "image": "/assets/cakes/rasmalai.jpg",
+    "highlights": ["🌿 Saffron & Cardamom", "🥜 Pistachio Crunch", "🥛 Soft Rasmalai Pieces"]
+  },
+  {
+    "id": "p7",
+    "name": "Snickers Cake",
+    "price": 1099,
+    "originalPrice": 1199,
+    "rating": 5,
+    "category": "premium",
+    "description": "Peanut butter, chocolate, and caramel explosion.",
+    "image": "/assets/cakes/snickers.jpg",
+    "highlights": ["🥜 Crunchy Peanuts", "🍫 Belgian Chocolate Filling", "🍯 Gooey Caramel Center"]
+  },
+  {
+    "id": "p8",
+    "name": "Chocolate Truffle Cake",
+    "price": 1100,
+    "originalPrice": 1200,
+    "rating": 5,
+    "category": "premium",
+    "description": "Dense and fudgy chocolate truffle.",
+    "image": "/assets/cakes/mangalore/chocolate-truffle.jpg",
+    "highlights": ["🍫 Dark Chocolate", "✨ Fudgy Texture", "🎂 Ganache"]
+  },
+  {
+    "id": "b1",
+    "name": "Mango Cake",
+    "price": 900,
+    "originalPrice": 1000,
+    "rating": 4,
+    "category": "budget",
+    "description": "Tropical freshness in every bite.",
+    "image": "/assets/cakes/mango.jpg",
+    "highlights": ["🥭 Fresh Mango Pulp", "🍰 Tropical Flavor Profile", "✨ Light Whipped Cream"]
+  },
+  {
+    "id": "b2",
+    "name": "Butterscotch Cake",
+    "price": 900,
+    "originalPrice": 1000,
+    "rating": 4,
+    "category": "budget",
+    "description": "Crunchy praline and smooth cream.",
+    "image": "/assets/cakes/butterscotch.jpg",
+    "highlights": ["🥜 Crunchy Cashew Praline", "🧈 Buttery Caramel Sauce", "🎂 Classic Celebration Choice"]
+  },
+  {
+    "id": "b3",
+    "name": "Red Velvet Cake",
+    "price": 900,
+    "originalPrice": 1000,
+    "rating": 5,
+    "category": "budget",
+    "description": "Classic red velvet with cream cheese frosting.",
+    "image": "/assets/cakes/red-velvet.jpg",
+    "highlights": ["❤️ Velvety Cocoa Sponge", "🧀 Real Cream Cheese Frosting", "✨ Distinctive Red Crumb"]
+  },
+  {
+    "id": "b4",
+    "name": "Strawberry Cake",
+    "price": 900,
+    "originalPrice": 1000,
+    "rating": 4,
+    "category": "budget",
+    "description": "Sweet and tangy strawberry delight.",
+    "image": "/assets/cakes/strawberry.jpg",
+    "highlights": ["🍓 Fresh Strawberry Crush", "🍰 Pink Velvet Sponge", "✨ Sweet & Tangy Balance"]
+  },
+  {
+    "id": "b5",
+    "name": "Pistachio Cake",
+    "price": 900,
+    "originalPrice": 1000,
+    "rating": 5,
+    "category": "budget",
+    "description": "Rich nutty flavor of pistachios.",
+    "image": "/assets/cakes/pistachio.jpg",
+    "highlights": ["🥜 Real Roasted Pistachios", "🌿 Natural Green Hue", "🥛 Creamy Nut Filling"]
+  },
+  {
+    "id": "b6",
+    "name": "Vanilla Cake",
+    "price": 800,
+    "originalPrice": 900,
+    "rating": 4,
+    "category": "budget",
+    "description": "Simple, fluffy, and delicious.",
+    "image": "/assets/cakes/vanilla.jpg",
+    "highlights": ["🍦 Pure Vanilla Extract", "☁️ Super Soft Sponge", "🎂 Classic Party Favorite"]
+  },
+  {
+    "id": "b7",
+    "name": "Chocolate Cake",
+    "price": 900,
+    "originalPrice": 1000,
+    "rating": 5,
+    "category": "budget",
+    "description": "Decadent chocolate layers.",
+    "image": "/assets/cakes/chocolate.jpg",
+    "highlights": ["🍫 Double Cocoa Sponge", "🍰 Dark Chocolate Ganache", "✨ Rich & Fudgy"]
+  },
+  {
+    "id": "b8",
+    "name": "Black Forest Cake",
+    "price": 700,
+    "originalPrice": 800,
+    "rating": 4,
+    "category": "budget",
+    "description": "Cherry and chocolate classic.",
+    "image": "/assets/cakes/black-forest.jpg",
+    "highlights": ["🍒 Glazed Red Cherries", "🍫 Chocolate Shavings", "☁️ Whipped Cream Layers"]
+  },
+  {
+    "id": "b9",
+    "name": "White Forest Cake",
+    "price": 700,
+    "originalPrice": 800,
+    "rating": 4,
+    "category": "budget",
+    "description": "White chocolate version of the classic.",
+    "image": "/assets/cakes/white-forest.jpg",
+    "highlights": ["🤍 White Chocolate Flakes", "🍒 Sweet Cherry Filling", "🎂 Light Vanilla Sponge"]
+  },
+  {
+    "id": "c1",
+    "name": "Ferrero Cake",
+    "price": 1400,
+    "originalPrice": 1500,
+    "rating": 5,
+    "category": "crown",
+    "description": "The ultimate hazelnut chocolate indulgence.",
+    "image": "/assets/cakes/ferrero.jpg",
+    "highlights": ["🌰 Whole Roasted Hazelnuts", "🍫 Nutella & Chocolate Ganache", "✨ Gold Dust Finish"]
+  },
+  {
+    "id": "c2",
+    "name": "Roasted Almond Cake",
+    "price": 1400,
+    "originalPrice": 1500,
+    "rating": 5,
+    "category": "crown",
+    "description": "Toasted almonds with rich cream.",
+    "image": "/assets/cakes/roasted-almond.jpg",
+    "highlights": ["🥜 Toasted Almond Flakes", "🥛 Almond-Infused Cream", "✨ Nutty & Crunchy Texture"]
+  },
+  {
+    "id": "c3",
+    "name": "Roasted Cashew Cake",
+    "price": 1400,
+    "originalPrice": 1500,
+    "rating": 5,
+    "category": "crown",
+    "description": "Creamy cashew delight.",
+    "image": "/assets/cakes/roasted-cashew.jpg",
+    "highlights": ["🥜 Golden Roasted Cashews", "🍯 Cashew Butter Cream", "🍰 Premium Nutty Flavor"]
+  }
+]
