@@ -480,13 +480,53 @@ const AdminDashboard = () => {
         else setManCakes(data);
     };
 
-    // Save to localStorage (instant live preview)
-    const handleSaveLive = () => {
+    const [deploying, setDeploying] = useState(false);
+    const [deployStatus, setDeployStatus] = useState(null); // null | 'deploying' | 'done' | 'error'
+
+    // Step 1: Save locally for instant preview on this browser
+    const handleSaveLocal = () => {
         saveStoreData('rajapuram', rajCakes);
         saveStoreData('mangalore', manCakes);
         setSaved(true);
-        showToast('✅ Changes saved! Live on your site now. (Visitors will see updates after page refresh)', 'success');
+        showToast('✅ Saved locally! Only you can see changes right now. Click "Deploy to Live Site" to publish for everyone.', 'success');
         setTimeout(() => setSaved(false), 3000);
+    };
+
+    // Step 2: Push changes to GitHub via Netlify function → Netlify auto-rebuilds → live for everyone
+    const handleDeploy = async () => {
+        setDeploying(true);
+        setDeployStatus('deploying');
+
+        // Save locally first
+        saveStoreData('rajapuram', rajCakes);
+        saveStoreData('mangalore', manCakes);
+
+        try {
+            const res = await fetch('/.netlify/functions/updateCakes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rajapuramCakes: rajCakes,
+                    mangaloreCakes: manCakes,
+                    deployedBy: 'Admin',
+                }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                setDeployStatus('done');
+                showToast('🚀 Deployed! Changes pushed to GitHub. Site will update in ~2 minutes. No action needed!', 'success');
+                setTimeout(() => setDeployStatus(null), 8000);
+            } else {
+                throw new Error(data.error || 'Deployment failed');
+            }
+        } catch (err) {
+            setDeployStatus('error');
+            showToast(`❌ Deploy failed: ${err.message}`, 'error');
+            setTimeout(() => setDeployStatus(null), 6000);
+        }
+        setDeploying(false);
     };
 
     // CRUD handlers
@@ -611,24 +651,48 @@ const AdminDashboard = () => {
                                 {STORES[activeTab].label} Cakes
                             </h2>
                             <div className="admin-toolbar-actions">
-                                <button className="admin-btn admin-btn-ghost" onClick={() => window.open(`/`, '_blank')}>
-                                    <Eye size={16} /> Preview
+                                <button className="admin-btn admin-btn-ghost" onClick={() => window.open('https://carameloft.com', '_blank')}>
+                                    <Eye size={16} /> View Site
                                 </button>
                                 <button className="admin-btn admin-btn-gold" onClick={handleAddCake}>
                                     <Plus size={16} /> Add Cake
                                 </button>
                                 <button
-                                    className={`admin-btn ${saved ? 'admin-btn-success' : 'admin-btn-save'}`}
-                                    onClick={handleSaveLive}
+                                    className={`admin-btn ${saved ? 'admin-btn-success' : 'admin-btn-ghost'}`}
+                                    onClick={handleSaveLocal}
+                                    title="Save locally (only visible on your browser)"
                                 >
-                                    <Save size={16} /> {saved ? 'Saved!' : 'Save & Go Live'}
+                                    <Save size={16} /> {saved ? '✓ Saved' : 'Save Draft'}
+                                </button>
+                                <button
+                                    className={`admin-btn ${
+                                        deployStatus === 'done' ? 'admin-btn-success' :
+                                        deployStatus === 'error' ? 'admin-btn-danger' :
+                                        'admin-btn-gold'
+                                    }`}
+                                    onClick={handleDeploy}
+                                    disabled={deploying}
+                                    title="Push changes permanently to carameloft.com for ALL visitors"
+                                >
+                                    {deploying ? (
+                                        <><span className="admin-spinner" style={{borderTopColor:'#000',width:'14px',height:'14px'}}></span> Deploying...</>
+                                    ) : deployStatus === 'done' ? (
+                                        <>✅ Deployed!</>
+                                    ) : deployStatus === 'error' ? (
+                                        <>❌ Failed — Retry</>
+                                    ) : (
+                                        <>🚀 Deploy to Live Site</>
+                                    )}
                                 </button>
                             </div>
                         </div>
 
-                        {/* Important Note */}
+                        {/* Status Note */}
                         <div className="admin-live-note">
-                            💡 <strong>How it works:</strong> Changes save instantly to this browser. Click <strong>"Save & Go Live"</strong> to make changes visible to all visitors. For permanent deployment, push to GitHub (auto-deploys via Netlify).
+                            {deployStatus === 'deploying' && <span style={{color:'#f39c12'}}>⏳ <strong>Deploying...</strong> Pushing changes to GitHub. Netlify is rebuilding your site (~2 min).</span>}
+                            {deployStatus === 'done' && <span style={{color:'#2ecc71'}}>🚀 <strong>Live!</strong> Changes published to carameloft.com. Refresh the site in ~2 minutes to see them.</span>}
+                            {deployStatus === 'error' && <span style={{color:'#e74c3c'}}>❌ <strong>Deploy failed.</strong> Check that the GITHUB_TOKEN env variable is set in Netlify dashboard.</span>}
+                            {!deployStatus && <span>💡 <strong>How it works:</strong> Edit cakes → click <strong>🚀 Deploy to Live Site</strong> → changes go live on <strong>carameloft.com</strong> for everyone in ~2 minutes. No GitHub needed!</span>}
                         </div>
 
                         <CakeTable
