@@ -375,33 +375,63 @@ const ChangePasswordPanel = ({ changePassword }) => {
     const [newPass, setNewPass] = useState('');
     const [confirm, setConfirm] = useState('');
     const [msg, setMsg] = useState(null);
+    const [loading, setLoading] = useState(false);
 
-    const handleChange = (e) => {
+    // Live password strength rules
+    const rules = [
+        { label: 'At least 10 characters', pass: newPass.length >= 10 },
+        { label: 'One uppercase letter (A-Z)', pass: /[A-Z]/.test(newPass) },
+        { label: 'One number or special character (!@#$%^&*)', pass: /[0-9!@#$%^&*]/.test(newPass) },
+        { label: 'Passwords match', pass: newPass === confirm && confirm.length > 0 },
+    ];
+    const allRulesPass = rules.every(r => r.pass);
+
+    const handleChange = async (e) => {
         e.preventDefault();
-        if (newPass !== confirm) {
-            setMsg({ type: 'error', text: 'New passwords do not match.' });
-            return;
-        }
-        const result = changePassword(current, newPass);
+        if (!allRulesPass) return;
+        setLoading(true);
+        setMsg(null);
+        const result = await changePassword(current, newPass);
         setMsg({ type: result.success ? 'success' : 'error', text: result.message });
         if (result.success) { setCurrent(''); setNewPass(''); setConfirm(''); }
+        setLoading(false);
     };
 
     return (
         <div className="admin-panel admin-settings-panel">
             <h2 className="admin-panel-title"><Key size={20} /> Change Admin Password</h2>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '20px', marginTop: '-12px' }}>
+                🔒 Passwords are hashed with SHA-256 — never stored in plain text.
+            </p>
             <form onSubmit={handleChange} className="admin-settings-form">
                 <div className="admin-form-group">
                     <label className="admin-form-label">Current Password</label>
-                    <input type="password" className="admin-form-input" value={current} onChange={e => setCurrent(e.target.value)} required />
+                    <input type="password" className="admin-form-input" value={current}
+                        onChange={e => setCurrent(e.target.value)} required autoComplete="current-password" />
                 </div>
                 <div className="admin-form-group">
                     <label className="admin-form-label">New Password</label>
-                    <input type="password" className="admin-form-input" value={newPass} onChange={e => setNewPass(e.target.value)} required minLength={8} placeholder="Min 8 characters" />
+                    <input type="password" className="admin-form-input" value={newPass}
+                        onChange={e => setNewPass(e.target.value)} required autoComplete="new-password"
+                        placeholder="Min 10 characters" />
+                    {/* Live strength checker */}
+                    {newPass && (
+                        <ul className="admin-pwd-rules">
+                            {rules.slice(0, 3).map((r, i) => (
+                                <li key={i} className={r.pass ? 'rule-pass' : ''}>{r.label}</li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
                 <div className="admin-form-group">
                     <label className="admin-form-label">Confirm New Password</label>
-                    <input type="password" className="admin-form-input" value={confirm} onChange={e => setConfirm(e.target.value)} required />
+                    <input type="password" className="admin-form-input" value={confirm}
+                        onChange={e => setConfirm(e.target.value)} required autoComplete="new-password" />
+                    {confirm && (
+                        <ul className="admin-pwd-rules" style={{ marginTop: '6px' }}>
+                            <li className={rules[3].pass ? 'rule-pass' : ''}>Passwords match</li>
+                        </ul>
+                    )}
                 </div>
                 {msg && (
                     <div className={`admin-msg ${msg.type === 'success' ? 'msg-success' : 'msg-error'}`}>
@@ -409,7 +439,10 @@ const ChangePasswordPanel = ({ changePassword }) => {
                         {msg.text}
                     </div>
                 )}
-                <button type="submit" className="admin-btn admin-btn-gold"><Save size={16} /> Update Password</button>
+                <button type="submit" className="admin-btn admin-btn-gold"
+                    disabled={loading || !allRulesPass || !current}>
+                    {loading ? <span className="admin-spinner" style={{ borderTopColor: '#000' }}></span> : <><Save size={16} /> Update Password</>}
+                </button>
             </form>
         </div>
     );

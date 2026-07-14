@@ -2651,3 +2651,81 @@ img {
     flex-wrap: wrap;
   }
 }
+
+/* ── Lockout Banner ── */
+.admin-lockout-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.35);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  color: #e74c3c;
+}
+
+.admin-lockout-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.admin-lockout-banner strong {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.admin-lockout-banner p {
+  font-size: 0.82rem;
+  opacity: 0.85;
+  margin: 0;
+}
+
+/* ── Password Strength Rules ── */
+.admin-pwd-rules {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-pwd-rules li {
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+  transition: color 0.2s;
+}
+
+.admin-pwd-rules li.rule-pass {
+  color: #2ecc71;
+}
+
+.admin-pwd-rules li::before {
+  content: '✗';
+  font-size: 0.75rem;
+  color: #e74c3c;
+}
+
+.admin-pwd-rules li.rule-pass::before {
+  content: '✓';
+  color: #2ecc71;
+}
+
+/* ── Security Badge on Dashboard ── */
+.admin-security-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(46, 204, 113, 0.1);
+  border: 1px solid rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}

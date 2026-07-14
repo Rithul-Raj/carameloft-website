@@ -2,7 +2,48 @@
   command = "npm run build"
   publish = "dist"
 
+# ── SPA Routing ──────────────────────────────────────────────────────────────
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# ── Security Headers (applied to all pages) ──────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Prevent clickjacking — nobody can embed this site in an iframe
+    X-Frame-Options = "DENY"
+    # Prevent MIME-type sniffing attacks
+    X-Content-Type-Options = "nosniff"
+    # Enable XSS filter in older browsers
+    X-XSS-Protection = "1; mode=block"
+    # Don't send full referrer URL to other sites
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Disable browser features not needed for a cake shop
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()"
+    # Force HTTPS for 1 year (only activates on HTTPS)
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    # Content Security Policy — controls what the browser is allowed to load
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https:; media-src 'none'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+
+# ── Admin-specific headers — no caching, no indexing ─────────────────────────
+[[headers]]
+  for = "/admin"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    Pragma = "no-cache"
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    Pragma = "no-cache"
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
+
+# ── Static assets — long cache for performance ────────────────────────────────
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
