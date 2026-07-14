@@ -655,19 +655,22 @@ const AdminDashboard = () => {
                         className={`admin-nav-item ${activeSection === 'cakes' ? 'active' : ''}`}
                         onClick={() => setActiveSection('cakes')}
                     >
-                        <LayoutDashboard size={18} /> Cake Manager
+                        <LayoutDashboard size={18} />
+                        <span className="admin-nav-item-label">Cakes</span>
                     </button>
                     <button
                         className={`admin-nav-item ${activeSection === 'settings' ? 'active' : ''}`}
                         onClick={() => setActiveSection('settings')}
                     >
-                        <Key size={18} /> Settings
+                        <Key size={18} />
+                        <span className="admin-nav-item-label">Settings</span>
                     </button>
                 </nav>
 
                 <div className="admin-sidebar-footer">
                     <button className="admin-nav-item admin-logout-btn" onClick={() => { logout(); navigate('/admin'); }}>
-                        <LogOut size={18} /> Logout
+                        <LogOut size={18} />
+                        <span className="admin-nav-item-label">Logout</span>
                     </button>
                 </div>
             </aside>
