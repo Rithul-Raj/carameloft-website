@@ -450,7 +450,7 @@ const ChangePasswordPanel = ({ changePassword }) => {
 
 // ─── Main Dashboard ─────────────────────────────────────────────────────────
 const AdminDashboard = () => {
-    const { isAuthenticated, logout, changePassword } = useAdmin();
+    const { isAuthenticated, logout, getToken } = useAdmin();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('rajapuram');
     const [activeSection, setActiveSection] = useState('cakes'); // 'cakes' | 'settings'
@@ -497,14 +497,17 @@ const AdminDashboard = () => {
         setDeploying(true);
         setDeployStatus('deploying');
 
-        // Save locally first
         saveStoreData('rajapuram', rajCakes);
         saveStoreData('mangalore', manCakes);
 
         try {
+            const token = getToken();
             const res = await fetch('/.netlify/functions/updateCakes', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
                 body: JSON.stringify({
                     rajapuramCakes: rajCakes,
                     mangaloreCakes: manCakes,
@@ -704,7 +707,29 @@ const AdminDashboard = () => {
                 )}
 
                 {activeSection === 'settings' && (
-                    <ChangePasswordPanel changePassword={changePassword} />
+                    <div className="admin-panel">
+                        <h2 className="admin-panel-title"><Key size={20} /> Security Settings</h2>
+                        <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+                            <div className="admin-msg msg-success">
+                                <CheckCircle size={16} />
+                                <span>🔒 Your password is stored <strong>server-side only</strong> in Netlify environment variables — it's never in the code or browser.</span>
+                            </div>
+                            <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'10px',padding:'20px'}}>
+                                <p style={{color:'var(--color-gold)',fontWeight:600,marginBottom:'12px'}}>🔑 To change your admin password:</p>
+                                <ol style={{color:'var(--color-text-muted)',fontSize:'0.88rem',lineHeight:'2',paddingLeft:'20px'}}>
+                                    <li>Go to <strong style={{color:'var(--color-text)'}}>app.netlify.com</strong> → your carameloft site</li>
+                                    <li>Click <strong style={{color:'var(--color-text)'}}>Site configuration → Environment variables</strong></li>
+                                    <li>Find <code style={{background:'rgba(212,175,55,0.1)',padding:'2px 8px',borderRadius:'4px',color:'var(--color-gold)'}}>ADMIN_PASSWORD</code> and click Edit</li>
+                                    <li>Enter your new password → Save</li>
+                                    <li>Go to <strong style={{color:'var(--color-text)'}}>Deploys → Trigger deploy</strong> to activate</li>
+                                </ol>
+                            </div>
+                            <div className="admin-msg" style={{background:'rgba(52,152,219,0.08)',border:'1px solid rgba(52,152,219,0.2)',color:'#3498db'}}>
+                                <ShieldCheck size={16} />
+                                <span>Session auto-expires in <strong>2 hours</strong>. You'll be logged out automatically for security.</span>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </main>
 

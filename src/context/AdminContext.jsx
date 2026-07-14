@@ -3,42 +3,17 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 const AdminContext = createContext(null);
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const MAX_ATTEMPTS = 5;           // Lock after 5 failed attempts
-const LOCKOUT_DURATION = 15 * 60 * 1000;  // 15 minutes lockout
-const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours session expiry
-const DEFAULT_PASSWORD = 'carameloft@admin2024';
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+const SESSION_KEY = 'carameloft_admin_token';
 
-// ── SHA-256 hashing via Web Crypto API (built into all modern browsers) ─────
-const hashPassword = async (password) => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password + 'carameloft_salt_2024'); // salted hash
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+// ── Lockout helpers (client-side brute-force protection) ──────────────────
+const getLockout = () => {
+    try { return JSON.parse(sessionStorage.getItem('carameloft_lockout') || '{}'); }
+    catch { return {}; }
 };
-
-// ── Store hashed default password on first run ─────────────────────────────
-const initDefaultPassword = async () => {
-    if (!localStorage.getItem('carameloft_admin_pwd_hash')) {
-        const hash = await hashPassword(DEFAULT_PASSWORD);
-        localStorage.setItem('carameloft_admin_pwd_hash', hash);
-    }
-};
-
-// ── Lockout helpers ────────────────────────────────────────────────────────
-const getLockoutState = () => {
-    try {
-        const raw = localStorage.getItem('carameloft_admin_lockout');
-        if (!raw) return { attempts: 0, lockedUntil: 0 };
-        return JSON.parse(raw);
-    } catch { return { attempts: 0, lockedUntil: 0 }; }
-};
-
-const setLockoutState = (state) => {
-    localStorage.setItem('carameloft_admin_lockout', JSON.stringify(state));
-};
-
-const clearLockout = () => localStorage.removeItem('carameloft_admin_lockout');
+const setLockout = (data) => sessionStorage.setItem('carameloft_lockout', JSON.stringify(data));
+const clearLockout = () => sessionStorage.removeItem('carameloft_lockout');
 
 // ── Provider ───────────────────────────────────────────────────────────────
 export const AdminProvider = ({ children }) => {
@@ -47,9 +22,7 @@ export const AdminProvider = ({ children }) => {
     const sessionTimerRef = useRef(null);
     const activityTimerRef = useRef(null);
 
-    // Initialize hashed default password on mount
     useEffect(() => {
-        initDefaultPassword();
         checkSession();
         return () => {
             clearTimeout(sessionTimerRef.current);
@@ -57,146 +30,110 @@ export const AdminProvider = ({ children }) => {
         };
     }, []);
 
-    // Check for existing valid session
+    // Check token expiry from server-issued token
     const checkSession = () => {
         try {
-            const sessionData = sessionStorage.getItem('carameloft_admin_session');
-            if (!sessionData) return;
-            const { timestamp } = JSON.parse(sessionData);
-            const elapsed = Date.now() - timestamp;
-            if (elapsed < SESSION_TIMEOUT) {
+            const token = sessionStorage.getItem(SESSION_KEY);
+            if (!token) return;
+            const [expires] = token.split('.');
+            const remaining = parseInt(expires) - Date.now();
+            if (remaining > 0) {
                 setIsAuthenticated(true);
-                scheduleSessionExpiry(SESSION_TIMEOUT - elapsed);
-                setupActivityListener();
+                scheduleExpiry(remaining);
+                setupActivity();
             } else {
-                sessionStorage.removeItem('carameloft_admin_session');
+                sessionStorage.removeItem(SESSION_KEY);
             }
         } catch {
-            sessionStorage.removeItem('carameloft_admin_session');
+            sessionStorage.removeItem(SESSION_KEY);
         }
     };
 
-    // Auto-logout timer
-    const scheduleSessionExpiry = (remaining) => {
+    const scheduleExpiry = (ms) => {
         clearTimeout(sessionTimerRef.current);
-        sessionTimerRef.current = setTimeout(() => {
-            logout('Session expired. Please log in again.');
-        }, remaining);
+        sessionTimerRef.current = setTimeout(() => logout('Session expired. Please log in again.'), ms);
     };
 
-    // Reset timer on user activity (keep session alive while active)
-    const resetActivityTimer = useCallback(() => {
+    const resetActivity = useCallback(() => {
         clearTimeout(activityTimerRef.current);
-        activityTimerRef.current = setTimeout(() => {
-            logout('Logged out due to inactivity.');
-        }, SESSION_TIMEOUT);
+        activityTimerRef.current = setTimeout(
+            () => logout('Logged out due to inactivity.'),
+            2 * 60 * 60 * 1000
+        );
     }, []);
 
-    const setupActivityListener = () => {
+    const setupActivity = () => {
         const events = ['mousedown', 'keydown', 'touchstart', 'scroll'];
-        const handler = () => resetActivityTimer();
+        const handler = () => resetActivity();
         events.forEach(e => window.addEventListener(e, handler, { passive: true }));
-        resetActivityTimer();
-        // Store cleanup reference
-        window._adminActivityCleanup = () => events.forEach(e => window.removeEventListener(e, handler));
+        resetActivity();
+        window._adminCleanup = () => events.forEach(e => window.removeEventListener(e, handler));
     };
 
-    const cleanupActivityListener = () => {
-        if (window._adminActivityCleanup) {
-            window._adminActivityCleanup();
-            delete window._adminActivityCleanup;
-        }
-        clearTimeout(activityTimerRef.current);
-    };
-
-    // ── Login with lockout ───────────────────────────────────────────────
+    // ── Login — calls server-side Netlify function ────────────────────────
     const login = async (password) => {
-        // Check lockout
-        const lockState = getLockoutState();
+        // Check client-side lockout first
+        const lock = getLockout();
         const now = Date.now();
-
-        if (lockState.lockedUntil > now) {
-            const remaining = Math.ceil((lockState.lockedUntil - now) / 1000);
-            setLockoutInfo({ locked: true, remaining, attempts: lockState.attempts });
+        if (lock.until > now) {
+            const remaining = Math.ceil((lock.until - now) / 1000);
+            setLockoutInfo({ locked: true, remaining, attempts: lock.attempts });
             return { success: false, locked: true, remaining };
         }
 
-        // Hash and verify password
-        const inputHash = await hashPassword(password);
-        const storedHash = localStorage.getItem('carameloft_admin_pwd_hash');
+        try {
+            const res = await fetch('/.netlify/functions/verifyAdmin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password }),
+            });
 
-        if (inputHash === storedHash) {
-            // Success — clear lockout
-            clearLockout();
-            setLockoutInfo({ locked: false, remaining: 0, attempts: 0 });
-            setIsAuthenticated(true);
+            const data = await res.json();
 
-            // Save session with timestamp
-            sessionStorage.setItem('carameloft_admin_session', JSON.stringify({ timestamp: now }));
-            scheduleSessionExpiry(SESSION_TIMEOUT);
-            setupActivityListener();
-            return { success: true };
-        } else {
-            // Failed — increment attempts
-            const newAttempts = (lockState.attempts || 0) + 1;
-            const remaining = MAX_ATTEMPTS - newAttempts;
-
-            if (newAttempts >= MAX_ATTEMPTS) {
-                const lockedUntil = now + LOCKOUT_DURATION;
-                setLockoutState({ attempts: newAttempts, lockedUntil });
-                setLockoutInfo({ locked: true, remaining: LOCKOUT_DURATION / 1000, attempts: newAttempts });
-                return { success: false, locked: true, remaining: LOCKOUT_DURATION / 1000, message: `Too many attempts. Locked for 15 minutes.` };
+            if (res.ok && data.success && data.token) {
+                // Success
+                clearLockout();
+                setLockoutInfo({ locked: false, remaining: 0, attempts: 0 });
+                sessionStorage.setItem(SESSION_KEY, data.token);
+                setIsAuthenticated(true);
+                const [expires] = data.token.split('.');
+                scheduleExpiry(parseInt(expires) - Date.now());
+                setupActivity();
+                return { success: true };
             } else {
-                setLockoutState({ attempts: newAttempts, lockedUntil: 0 });
-                setLockoutInfo({ locked: false, remaining: 0, attempts: newAttempts });
-                return { success: false, locked: false, attemptsLeft: remaining };
+                // Failed — increment lockout counter
+                const attempts = (lock.attempts || 0) + 1;
+                if (attempts >= MAX_ATTEMPTS) {
+                    const until = now + LOCKOUT_DURATION;
+                    setLockout({ attempts, until });
+                    setLockoutInfo({ locked: true, remaining: LOCKOUT_DURATION / 1000, attempts });
+                    return { success: false, locked: true, remaining: LOCKOUT_DURATION / 1000 };
+                } else {
+                    setLockout({ attempts, until: 0 });
+                    setLockoutInfo({ locked: false, remaining: 0, attempts });
+                    return { success: false, locked: false, attemptsLeft: MAX_ATTEMPTS - attempts };
+                }
             }
+        } catch (err) {
+            return { success: false, locked: false, error: 'Network error. Please try again.' };
         }
     };
 
-    // ── Logout ──────────────────────────────────────────────────────────
+    // ── Get session token (used by deploy function) ──────────────────────
+    const getToken = () => sessionStorage.getItem(SESSION_KEY);
+
+    // ── Logout ────────────────────────────────────────────────────────────
     const logout = (message) => {
         setIsAuthenticated(false);
-        sessionStorage.removeItem('carameloft_admin_session');
+        sessionStorage.removeItem(SESSION_KEY);
         clearTimeout(sessionTimerRef.current);
-        cleanupActivityListener();
-        if (message) {
-            sessionStorage.setItem('carameloft_logout_msg', message);
-        }
-    };
-
-    // ── Change Password ──────────────────────────────────────────────────
-    const changePassword = async (currentPassword, newPassword) => {
-        if (newPassword.length < 10) {
-            return { success: false, message: 'New password must be at least 10 characters.' };
-        }
-        if (!/[A-Z]/.test(newPassword)) {
-            return { success: false, message: 'Password must contain at least one uppercase letter.' };
-        }
-        if (!/[0-9!@#$%^&*]/.test(newPassword)) {
-            return { success: false, message: 'Password must contain a number or special character (!@#$%^&*).' };
-        }
-
-        const currentHash = await hashPassword(currentPassword);
-        const storedHash = localStorage.getItem('carameloft_admin_pwd_hash');
-
-        if (currentHash !== storedHash) {
-            return { success: false, message: 'Current password is incorrect.' };
-        }
-
-        const newHash = await hashPassword(newPassword);
-        localStorage.setItem('carameloft_admin_pwd_hash', newHash);
-        return { success: true, message: 'Password changed successfully!' };
+        clearTimeout(activityTimerRef.current);
+        if (window._adminCleanup) { window._adminCleanup(); delete window._adminCleanup; }
+        if (message) sessionStorage.setItem('carameloft_logout_msg', message);
     };
 
     return (
-        <AdminContext.Provider value={{
-            isAuthenticated,
-            lockoutInfo,
-            login,
-            logout,
-            changePassword
-        }}>
+        <AdminContext.Provider value={{ isAuthenticated, lockoutInfo, login, logout, getToken }}>
             {children}
         </AdminContext.Provider>
     );

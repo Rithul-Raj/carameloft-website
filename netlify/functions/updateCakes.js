@@ -2,16 +2,33 @@
 // Runs on Netlify's server (not in the browser), so GitHub token is safe here.
 // Called by the admin dashboard when "Save & Deploy" is clicked.
 
-const GITHUB_OWNER = process.env.GITHUB_OWNER || 'Rithul-Raj';
-const GITHUB_REPO  = process.env.GITHUB_REPO  || 'carameloft-website';
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;   // Set in Netlify dashboard
+const crypto = require('crypto');
+
+const GITHUB_OWNER  = process.env.GITHUB_OWNER || 'Rithul-Raj';
+const GITHUB_REPO   = process.env.GITHUB_REPO  || 'carameloft-website';
+const GITHUB_TOKEN  = process.env.GITHUB_TOKEN;
+const ADMIN_SECRET  = process.env.ADMIN_SECRET;
 
 const HEADERS = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Verify HMAC session token from verifyAdmin function
+const verifyToken = (token) => {
+    if (!token || !ADMIN_SECRET) return false;
+    const parts = token.split('.');
+    if (parts.length !== 2) return false;
+    const [expires, sig] = parts;
+    if (Date.now() > parseInt(expires)) return false;
+    const expected = crypto.createHmac('sha256', ADMIN_SECRET).update(expires).digest('hex');
+    try {
+        return crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'));
+    } catch { return false; }
+};
+
 
 // Verify admin token (same hash stored in localStorage on the client)
 const verifyAdminToken = (requestToken) => {
@@ -77,6 +94,13 @@ exports.handler = async (event) => {
         return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: 'GitHub token not configured. Please set GITHUB_TOKEN in Netlify environment variables.' }) };
     }
 
+    // Verify session token from Authorization header
+    const authHeader = event.headers['authorization'] || event.headers['Authorization'] || '';
+    const token = authHeader.replace('Bearer ', '');
+    if (!verifyToken(token)) {
+        return { statusCode: 401, headers: HEADERS, body: JSON.stringify({ error: 'Unauthorized. Invalid or expired session.' }) };
+    }
+
     let body;
     try {
         body = JSON.parse(event.body);
@@ -89,6 +113,7 @@ exports.handler = async (event) => {
     if (!rajapuramCakes && !mangaloreCakes) {
         return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'No cake data provided' }) };
     }
+
 
     try {
         const timestamp = new Date().toISOString();
