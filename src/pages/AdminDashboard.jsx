@@ -68,26 +68,77 @@ const ConfirmDialog = ({ open, message, onConfirm, onCancel }) => {
     );
 };
 
+// ─── Compress image using Canvas (client-side, before upload) ────────────────
+const compressImage = (file, maxWidth = 1200, quality = 0.85) =>
+    new Promise((resolve) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            let { width, height } = img;
+            if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = url;
+    });
+
 // ─── Image Uploader ─────────────────────────────────────────────────────────
 const ImageUploader = ({ value, onChange }) => {
     const fileRef = useRef();
     const [dragOver, setDragOver] = useState(false);
     const [preview, setPreview] = useState(value || '');
+    const [uploadState, setUploadState] = useState(null); // null | 'uploading' | 'done' | 'error'
+    const [uploadMsg, setUploadMsg] = useState('');
 
-    const handleFile = (file) => {
+    const handleFile = async (file) => {
         if (!file || !file.type.startsWith('image/')) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const dataUrl = e.target.result;
-            setPreview(dataUrl);
-            onChange(dataUrl);
-        };
-        reader.readAsDataURL(file);
+        setUploadState('uploading');
+        setUploadMsg('Compressing image...');
+
+        try {
+            // Step 1: Compress image client-side
+            const compressed = await compressImage(file);
+            setPreview(compressed); // show local preview immediately
+            setUploadMsg('Uploading to server...');
+
+            // Step 2: Get session token
+            const token = sessionStorage.getItem('carameloft_admin_token');
+            if (!token) throw new Error('Not logged in. Please refresh and log in again.');
+
+            // Step 3: Upload to GitHub via Netlify function
+            const res = await fetch('/.netlify/functions/uploadImage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    filename: file.name,
+                    base64Content: compressed,
+                }),
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.error || 'Upload failed');
+
+            // Step 4: Store URL (not base64!) in cake data
+            setPreview(data.url);
+            onChange(data.url);
+            setUploadState('done');
+            setUploadMsg(`✅ Uploaded! Path: ${data.url}`);
+        } catch (err) {
+            setUploadState('error');
+            setUploadMsg(`❌ Upload failed: ${err.message}`);
+            // Keep local preview so user sees the image, but store dataURL temporarily
+            onChange(preview);
+        }
     };
 
     const handleDrop = (e) => {
-        e.preventDefault();
-        setDragOver(false);
+        e.preventDefault(); setDragOver(false);
         handleFile(e.dataTransfer.files[0]);
     };
 
@@ -95,36 +146,51 @@ const ImageUploader = ({ value, onChange }) => {
         <div className="admin-form-group">
             <label className="admin-form-label"><ImageIcon size={16} /> Cake Image</label>
             <div
-                className={`admin-image-drop ${dragOver ? 'drop-active' : ''}`}
+                className={`admin-image-drop ${dragOver ? 'drop-active' : ''} ${uploadState === 'uploading' ? 'drop-uploading' : ''}`}
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
-                onClick={() => fileRef.current?.click()}
+                onClick={() => uploadState !== 'uploading' && fileRef.current?.click()}
             >
-                {preview ? (
-                    <img src={preview} alt="preview" className="admin-img-preview" />
+                {preview && !preview.startsWith('data:') ? (
+                    // Show actual uploaded image from server
+                    <img src={preview} alt="preview" className="admin-img-preview"
+                        onError={e => { e.target.src = 'https://placehold.co/200x200/1a1a1a/d4af37?text=🎂'; }} />
+                ) : preview && preview.startsWith('data:') ? (
+                    // Show compressed local preview while uploading
+                    <img src={preview} alt="preview" className="admin-img-preview" style={{ opacity: 0.6 }} />
                 ) : (
                     <div className="admin-drop-placeholder">
                         <Upload size={32} />
                         <span>Drag & drop or click to upload</span>
-                        <small>PNG, JPG, WEBP supported</small>
+                        <small>PNG, JPG, WEBP — auto-compressed & uploaded</small>
                     </div>
                 )}
-                <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={(e) => handleFile(e.target.files[0])}
-                />
+                {uploadState === 'uploading' && (
+                    <div className="admin-upload-overlay">
+                        <span className="admin-spinner" style={{ width: '28px', height: '28px', borderWidth: '3px' }}></span>
+                        <span>Uploading...</span>
+                    </div>
+                )}
+                <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={(e) => handleFile(e.target.files[0])} />
             </div>
-            {/* Also allow manual path entry */}
+            {/* Upload status message */}
+            {uploadState && (
+                <p style={{
+                    fontSize: '0.78rem', marginTop: '6px',
+                    color: uploadState === 'done' ? '#2ecc71' : uploadState === 'error' ? '#e74c3c' : '#f39c12'
+                }}>
+                    {uploadMsg}
+                </p>
+            )}
+            {/* Manual URL entry */}
             <input
                 type="text"
                 className="admin-form-input"
-                placeholder="Or enter image path (e.g. /assets/cakes/mango.jpg)"
+                placeholder="Or enter image URL (e.g. /assets/cakes/mango.jpg)"
                 value={preview.startsWith('data:') ? '' : preview}
-                onChange={(e) => { setPreview(e.target.value); onChange(e.target.value); }}
+                onChange={(e) => { setPreview(e.target.value); onChange(e.target.value); setUploadState(null); }}
                 style={{ marginTop: '8px' }}
             />
         </div>
