@@ -1,6 +1,7 @@
-// netlify/functions/uploadImage.js
+// netlify/functions/uploadImage.cjs
 // Uploads a cake image as a file to the GitHub repo (public/assets/cakes/)
 // Returns the relative URL path to use in the JSON data.
+// .cjs extension = explicit CommonJS, works even when package.json has "type": "module"
 
 const crypto = require('crypto');
 
@@ -118,3 +119,4 @@ exports.handler = async (event) => {
         };
     }
 };
+

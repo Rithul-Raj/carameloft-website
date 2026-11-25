@@ -1,6 +1,7 @@
-// Netlify Serverless Function — updateCakes.js
+// Netlify Serverless Function — updateCakes.cjs
 // Runs on Netlify's server (not in the browser), so GitHub token is safe here.
 // Called by the admin dashboard when "Save & Deploy" is clicked.
+// .cjs extension = explicit CommonJS, works even when package.json has "type": "module"
 
 const crypto = require('crypto');
 
@@ -156,3 +157,4 @@ exports.handler = async (event) => {
         };
     }
 };
+

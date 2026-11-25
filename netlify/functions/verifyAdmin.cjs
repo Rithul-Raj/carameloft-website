@@ -1,6 +1,7 @@
-// netlify/functions/verifyAdmin.js
+// netlify/functions/verifyAdmin.cjs
 // Password NEVER touches the browser — verified server-side only.
 // The actual password lives in Netlify environment variables.
+// .cjs extension = explicit CommonJS, works even when package.json has "type": "module"
 
 const crypto = require('crypto');
 
@@ -65,3 +66,4 @@ exports.handler = async (event) => {
         body: JSON.stringify({ success: false, message: 'Incorrect password' })
     };
 };
+
